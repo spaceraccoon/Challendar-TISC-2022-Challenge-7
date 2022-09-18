@@ -1,0 +1,41 @@
+worker_processes 4;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    server {
+        listen 3000 default_server;
+        listen [::]:3000 default_server;
+        
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+
+        server_name _;
+        
+        location /radicale/.web {
+            return 200 "Radicale works!";
+        }
+        
+        location /radicale/ {
+            if ($request_method ~ ^(GET|PATCH|TRACE)$ ) {
+                return 405 "Method temporarily disabled during development";
+            }
+
+            if ($request_method ~ ^(MOVE|DELETE|PROPPATCH|PUT|MKCALENDAR|COPY|POST)$ ) {
+                return 403 "Read-only access during development";
+            }
+                 
+            proxy_pass        http://localhost:5232/;
+            proxy_set_header  X-Script-Name /radicale;
+            proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header  Host $http_host;
+            proxy_pass_header Authorization;
+        }
+        
+        location / {
+            return 301 " /radicale/.web";
+        }
+    }
+}
